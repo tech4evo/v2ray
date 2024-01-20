@@ -39,8 +39,12 @@ jobs:
         flutter-version: '3.7.11'
     - run: dart --version
     - run: flutter --version
-    - run: flutter pub get
-    - run: flutter build apk
+    - run: |
+        cd example
+        flutter pub get
+    - run: |
+        cd example
+        flutter build apk
     - name: Rename APK
       run: |
         cd example/build/app/outputs/flutter-apk
