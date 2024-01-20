@@ -1,0 +1,59 @@
+name: Flutter
+
+on:
+  # push:
+    # branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  check_commit_msg:
+    outputs:
+      commit_message: ${{ steps.get_message.outputs.message }}
+    name: Check if the workflow has been disabled.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: example
+      - name: Get commit message
+        id: get_message
+        run: |
+          echo "::set-output name=message::$(git log --format=%B -n 1 ${{ github.event.after }} | tr '\n' ' ')"
+          echo "message=\"$(git log --format=%B -n 1 ${{ github.event.after }} | tr '\n' ' ')\"" >> $GITHUB_ENV
+  build_apk:
+    needs: check_commit_msg
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+          path: example
+    - uses: actions/setup-java@v1
+      with:
+      # Please seehttps://imuer8.blogspot.com/2024/01/sail-vpn.html
+        java-version: '12.x'
+    - uses: subosito/flutter-action@v2
+      with:
+      # Please see https://imuer8.blogspot.com/2024/01/sail-vpn.html
+        flutter-version: '3.7.11'
+    - run: dart --version
+    - run: flutter --version
+    - run: flutter pub get
+    - run: flutter build apk
+    - name: Rename APK
+      run: |
+        cd example/build/app/outputs/flutter-apk
+        mv app-release.apk v2ray.apk
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: v2ray.${{ github.sha }}.android
+        path: example/build/app/outputs/flutter-apk/v2ray.apk
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: example/build/app/outputs/flutter-apk/*
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag_name: v1.0.0
+        release_name: Release v1.0.0
